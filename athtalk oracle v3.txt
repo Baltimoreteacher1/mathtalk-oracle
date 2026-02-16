@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathTalk Oracle V3 - Complete Adaptive Learning System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .card { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 30px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .gradient-text { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        button { 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-secondary { background: #e0e7ff; color: #667eea; }
+        input, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e0e7ff; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            margin-bottom: 15px;
+        }
+        input:focus, textarea:focus { outline: none; border-color: #667eea; }
+        .message { 
+            padding: 15px; 
+            border-radius: 15px; 
+            margin-bottom: 15px; 
+            max-width: 70%;
+        }
+        .message-student { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            margin-left: auto;
+        }
+        .message-ai { background: #f3f4f6; color: #1f2937; }
+        .writing-score { 
+            display: inline-block; 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 600; 
+            margin-left: 10px;
+        }
+        .score-high { background: #d1fae5; color: #065f46; }
+        .score-medium { background: #fef3c7; color: #92400e; }
+        .score-low { background: #fee2e2; color: #991b1b; }
+        .progress-bar { 
+            height: 8px; 
+            background: #e0e7ff; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            margin: 10px 0;
+        }
+        .progress-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+            transition: width 0.5s;
+        }
+        .twr-badge { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            background: #dbeafe; 
+            color: #1e40af; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            font-weight: 600; 
+            margin: 3px;
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.7); 
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 40px; 
+            max-width: 800px; 
+            width: 90%; 
+            max-height: 80vh; 
+            overflow-y: auto;
+        }
+        .stat-card { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            text-align: center;
+        }
+        .vocab-highlight { 
+            background: #fef3c7; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-weight: 600;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e7ff; }
+        th { background: #f9fafb; font-weight: 600; color: #667eea; }
+        .loading { 
+            display: inline-block; 
+            width: 20px; 
+            height: 20px; 
+            border: 3px solid #f3f3f3; 
+            border-top: 3px solid #667eea; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 768px) { 
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .message { max-width: 85%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // Simple state management
+        const state = {
+            view: 'login',
+            userType: null,
+            username: '',
+            students: [],
+            studentDataMap: {},
+            currentStudent: null,
+            conversationHistory: [],
+            currentInput: '',
+            isLoading: false,
+            currentLesson: null,
+            writingData: {}
+        };
+
+        // Sample student data
+        const sampleData = {
+            'José Martinez': { wida: 3.0, iReady: 456, unit1: 68, unit2: 72, unit3: 65, notes: 'Strong effort, language barrier on word problems' },
+            'Maria Chen': { wida: 2.5, iReady: 523, unit1: 85, unit2: 89, unit3: 88, notes: 'Math strong, building English confidence' },
+            'Ali Rahman': { wida: 4.0, iReady: 412, unit1: 55, unit2: 61, unit3: 58, notes: 'Needs conceptual support, good vocabulary' },
+            'Devon Washington': { wida: 3.5, iReady: 489, unit1: 78, unit2: 82, unit3: 80, notes: 'Steady progress' },
+        };
+
+        // Writing Revolution vocabulary
+        const twrVocab = {
+            connectors: ['because', 'so', 'but', 'therefore', 'however', 'although', 'while'],
+            mathTerms: ['inverse', 'coefficient', 'divisor', 'isolate', 'factor', 'product', 'quotient', 'sum', 'difference', 'ratio', 'proportion'],
+            academicVerbs: ['explain', 'justify', 'compare', 'analyze', 'evaluate', 'describe', 'determine']
+        };
+
+        // Load data from localStorage
+        function loadData() {
+            try {
+                const stored = localStorage.getItem('mathtalk_v3_students');
+                if (stored) state.students = JSON.parse(stored);
+
+                const dataMap = localStorage.getItem('mathtalk_v3_data_map');
+                if (dataMap) {
+                    state.studentDataMap = JSON.parse(dataMap);
+                } else {
+                    state.studentDataMap = sampleData;
+                    saveData();
+                }
+
+                const lesson = localStorage.getItem('mathtalk_v3_lesson');
+                if (lesson) state.currentLesson = JSON.parse(lesson);
+
+                const writing = localStorage.getItem('mathtalk_v3_writing');
+                if (writing) state.writingData = JSON.parse(writing);
+            } catch (e) {
+                state.studentDataMap = sampleData;
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('mathtalk_v3_students', JSON.stringify(state.students));
+            localStorage.setItem('mathtalk_v3_data_map', JSON.stringify(state.studentDataMap));
+            if (state.currentLesson) localStorage.setItem('mathtalk_v3_lesson', JSON.stringify(state.currentLesson));
+            localStorage.setItem('mathtalk_v3_writing', JSON.stringify(state.writingData));
+        }
+
+        // Analyze written response with TWR awareness
+        function analyzeWriting(text, studentData) {
+            const analysis = {
+                sentenceCount: 0,
+                wordCount: 0,
+                twrConnectors: [],
+                mathVocabUsed: [],
+                academicVerbsUsed: [],
+                sentenceComplexity: 0,
+                vocabularyScore: 0,
+                grammarScore: 0,
+                twrScore: 0,
+                overallWritingScore: 0,
+                feedback: [],
+                englishTips: []
+            };
+
+            const lowerText = text.toLowerCase();
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 5);
+            analysis.sentenceCount = sentences.length;
+            analysis.wordCount = text.split(/\s+/).length;
+
+            // Check for TWR connectors
+            twrVocab.connectors.forEach(word => {
+                if (lowerText.includes(word)) {
+                    analysis.twrConnectors.push(word);
+                }
+            });
+
+            // Check for math vocabulary
+            twrVocab.mathTerms.forEach(term => {
+                if (lowerText.includes(term)) {
+                    analysis.mathVocabUsed.push(term);
+                }
+            });
+
+            // Check for academic verbs
+            twrVocab.academicVerbs.forEach(verb => {
+                if (lowerText.includes(verb)) {
+                    analysis.academicVerbsUsed.push(verb);
+                }
+            });
+
+            // Sentence complexity (average words per sentence)
+            if (analysis.sentenceCount > 0) {
+                analysis.sentenceComplexity = Math.round(analysis.wordCount / analysis.sentenceCount);
+            }
+
+            // Vocabulary score (0-100)
+            const vocabUsage = analysis.mathVocabUsed.length + analysis.academicVerbsUsed.length;
+            analysis.vocabularyScore = Math.min(100, vocabUsage * 25);
+
+            // TWR score (0-100)
+            analysis.twrScore = Math.min(100, analysis.twrConnectors.length * 33);
+
+            // Grammar score (simplified - based on sentence structure)
+            const hasCapitalization = /[A-Z]/.test(text);
+            const hasPunctuation = /[.!?]/.test(text);
+            const hasCompleteThought = analysis.wordCount > 8;
+            analysis.grammarScore = (hasCapitalization ? 30 : 0) + (hasPunctuation ? 30 : 0) + (hasCompleteThought ? 40 : 0);
+
+            // Overall writing score
+            analysis.overallWritingScore = Math.round(
+                (analysis.vocabularyScore * 0.35) + 
+                (analysis.twrScore * 0.35) + 
+                (analysis.grammarScore * 0.30)
+            );
+
+            // Generate feedback
+            if (analysis.twrConnectors.length === 0) {
+                analysis.feedback.push("Try using connecting words like 'because' or 'so' to explain your thinking.");
+                analysis.englishTips.push("'Because' helps you give reasons: 'I chose this answer because...'");
+            } else if (analysis.twrConnectors.length === 1) {
+                analysis.feedback.push(`Great use of "${analysis.twrConnectors[0]}"! Can you also use "therefore" or "however"?`);
+            } else {
+                analysis.feedback.push(`Excellent! You used ${analysis.twrConnectors.length} connecting words.`);
+            }
+
+            if (analysis.mathVocabUsed.length === 0) {
+                analysis.feedback.push("Try using math vocabulary like 'factor', 'quotient', or 'coefficient'.");
+            } else {
+                analysis.feedback.push(`Strong math vocabulary! You used: ${analysis.mathVocabUsed.join(', ')}`);
+            }
+
+            // English learning tips based on WIDA level
+            if (studentData && studentData.wida < 3.0) {
+                if (analysis.sentenceComplexity < 8) {
+                    analysis.englishTips.push("Tip: Try adding more details. Instead of 'I solved it', write 'I solved it by multiplying both sides'");
+                }
+            }
+
+            return analysis;
+        }
+
+        // Get language complexity level
+        function getLanguageComplexity(widaLevel) {
+            if (widaLevel <= 2.0) return 'entering';
+            if (widaLevel <= 3.0) return 'emerging';
+            if (widaLevel <= 4.0) return 'developing';
+            if (widaLevel <= 5.0) return 'expanding';
+            return 'bridging';
+        }
+
+        // Generate AI response with Claude API
+        async function generateAIResponse(userMessage, conversationHistory, studentData) {
+            state.isLoading = true;
+            render();
+
+            try {
+                const widaLevel = studentData?.wida || 3.0;
+                const complexity = getLanguageComplexity(widaLevel);
+
+                let languageGuidance = '';
+                if (complexity === 'entering') {
+                    languageGuidance = 'Use VERY simple 5-8 word sentences. Ask yes/no questions. Teach key English words.';
+                } else if (complexity === 'emerging') {
+                    languageGuidance = 'Use simple 8-12 word sentences. Provide sentence frames like "I think ___ because ___". Teach vocabulary.';
+                } else if (complexity === 'developing') {
+                    languageGuidance = 'Use clear academic language. Encourage use of "because/so/but". Correct grammar gently.';
+                } else {
+                    languageGuidance = 'Use grade-level academic language. Push for precise explanations with TWR structures.';
+                }
+
+                const systemPrompt = `You are MathTalk Oracle, a 6th-grade math tutor focused on BOTH math understanding AND English language development.
+
+STUDENT PROFILE:
+- WIDA Level: ${widaLevel} (${complexity})
+- Language Guidance: ${languageGuidance}
+
+YOUR DUAL ROLE:
+1. Help student explain math thinking
+2. Teach English vocabulary and sentence structures
+
+WRITING REVOLUTION (TWR) FOCUS:
+- Encourage students to use: because, so, but, therefore, however
+- Model academic sentence structures
+- Praise use of math vocabulary: coefficient, inverse, quotient, factor, etc.
+
+TEACH ENGLISH NATURALLY:
+- If student makes grammar error, model correct form in your response
+- Introduce 1-2 new vocabulary words per conversation
+- Use sentence frames for emerging students
+
+Ask ONE question (10-15 words max) that helps student explain AND practice English.
+
+Respond with ONLY your question, nothing else.`;
+
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 1000,
+                        system: systemPrompt,
+                        messages: [
+                            { role: 'user', content: `Student said: "${userMessage}"\n\nAsk your next question (include gentle English teaching if needed):` }
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                return data.content.find(item => item.type === 'text')?.text || "Can you explain more?";
+            } catch (error) {
+                console.error('API Error:', error);
+                return "Tell me more about your thinking.";
+            } finally {
+                state.isLoading = false;
+            }
+        }
+
+        // Handle student message
+        async function handleStudentMessage() {
+            if (!state.currentInput.trim()) return;
+
+            const message = state.currentInput.trim();
+            const studentData = state.studentDataMap[state.currentStudent.username];
+            
+            // Analyze writing
+            const writingAnalysis = analyzeWriting(message, studentData);
+
+            // Add to conversation
+            state.conversationHistory.push({
+                role: 'student',
+                content: message,
+                writingAnalysis,
+                timestamp: new Date().toISOString()
+            });
+
+            // Track writing progress
+            if (!state.writingData[state.currentStudent.username]) {
+                state.writingData[state.currentStudent.username] = {
+                    analyses: [],
+                    averageScores: { vocabulary: 0, twr: 0, grammar: 0, overall: 0 }
+                };
+            }
+            state.writingData[state.currentStudent.username].analyses.push(writingAnalysis);
+
+            // Calculate averages
+            const analyses = state.writingData[state.currentStudent.username].analyses;
+            const avgVocab = analyses.reduce((sum, a) => sum + a.vocabularyScore, 0) / analyses.length;
+            const avgTWR = analyses.reduce((sum, a) => sum + a.twrScore, 0) / analyses.length;
+            const avgGrammar = analyses.reduce((sum, a) => sum + a.grammarScore, 0) / analyses.length;
+            const avgOverall = analyses.reduce((sum, a) => sum + a.overallWritingScore, 0) / analyses.length;
+
+            state.writingData[state.currentStudent.username].averageScores = {
+                vocabulary: Math.round(avgVocab),
+                twr: Math.round(avgTWR),
+                grammar: Math.round(avgGrammar),
+                overall: Math.round(avgOverall)
+            };
+
+            state.currentInput = '';
+            render();
+
+            // Get AI response
+            const aiResponse = await generateAIResponse(message, state.conversationHistory, studentData);
+            
+            state.conversationHistory.push({
+                role: 'ai',
+                content: aiResponse,
+                timestamp: new Date().toISOString()
+            });
+
+            // Speak AI response if voice is enabled
+            if (voiceEnabled) {
+                speakText(aiResponse);
+            }
+
+            // Update student record
+            const updatedStudents = state.students.map(s => {
+                if (s.username === state.currentStudent.username) {
+                    return {
+                        ...s,
+                        conversations: [...(s.conversations || []), {
+                            timestamp: new Date().toISOString(),
+                            messages: state.conversationHistory
+                        }]
+                    };
+                }
+                return s;
+            });
+
+            state.students = updatedStudents;
+            state.currentStudent = updatedStudents.find(s => s.username === state.currentStudent.username);
+            saveData();
+            render();
+        }
+
+        // Voice synthesis
+        let voiceEnabled = false;
+        let recognition = null;
+        let synthesis = window.speechSynthesis;
+
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            render();
+        }
+
+        function startVoiceInput() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    state.currentInput = transcript;
+                    render();
+                    document.getElementById('messageInput').value = transcript;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                };
+
+                recognition.start();
+            } else {
+                alert('Voice input not supported in this browser. Try Chrome or Edge.');
+            }
+        }
+
+        function speakText(text) {
+            if (voiceEnabled && synthesis) {
+                synthesis.cancel(); // Cancel any ongoing speech
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                synthesis.speak(utterance);
+            }
+        }
+
+        // Export data to spreadsheet format
+        function exportToSpreadsheet() {
+            let csv = 'Student Name,WIDA,i-Ready,Unit1,Unit2,Unit3,Avg Writing Score,TWR Score,Vocab Score,Notes\n';
+            
+            Object.keys(state.studentDataMap).forEach(name => {
+                const data = state.studentDataMap[name];
+                const writing = state.writingData[name]?.averageScores || { overall: 0, twr: 0, vocabulary: 0 };
+                
+                csv += `${name},${data.wida},${data.iReady},${data.unit1},${data.unit2},${data.unit3},${writing.overall},${writing.twr},${writing.vocabulary},"${data.notes}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mathtalk_student_data.csv';
+            a.click();
+        }
+
+        // Export conversation transcript
+        function exportConversation(studentName) {
+            const student = state.students.find(s => s.username === studentName);
+            if (!student || !student.conversations || student.conversations.length === 0) {
+                alert('No conversations to export');
+                return;
+            }
+
+            let text = `MathTalk Oracle - Conversation Transcript\n`;
+            text += `Student: ${studentName}\n`;
+            text += `Date: ${new Date().toLocaleDateString()}\n`;
+            text += `\n${'='.repeat(60)}\n\n`;
+
+            student.conversations.forEach((conv, i) => {
+                text += `CONVERSATION ${i + 1} - ${new Date(conv.timestamp).toLocaleString()}\n`;
+                text += `${'-'.repeat(60)}\n\n`;
+
+                conv.messages.forEach(msg => {
+                    if (msg.role === 'student') {
+                        text += `STUDENT:\n${msg.content}\n`;
+                        if (msg.writingAnalysis) {
+                            text += `[Writing Score: ${msg.writingAnalysis.overallWritingScore}% | `;
+                            text += `TWR: ${msg.writingAnalysis.twrConnectors.join(', ') || 'none'}]\n`;
+                        }
+                        text += `\n`;
+                    } else {
+                        text += `AI TUTOR:\n${msg.content}\n\n`;
+                    }
+                });
+
+                text += `\n`;
+            });
+
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${studentName.replace(/\s+/g, '_')}_transcript.txt`;
+            a.click();
+        }
+
+        // Generate student report
+        function generateReport(studentName) {
+            const student = state.students.find(s => s.username === studentName);
+            const data = state.studentDataMap[studentName];
+            const writing = state.writingData[studentName];
+
+            if (!student || !data) {
+                alert('No data available for this student');
+                return;
+            }
+
+            let html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${studentName} - Progress Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h2 { color: #764ba2; margin-top: 30px; }
+        .section { margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: 10px; }
+        .metric { display: inline-block; margin: 10px 20px 10px 0; }
+        .metric-label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
+        .metric-value { font-size: 32px; font-weight: bold; color: #667eea; }
+        .progress-bar { height: 20px; background: #e5e7eb; border-radius: 10px; margin: 10px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f3f4f6; font-weight: 600; }
+        .badge { display: inline-block; padding: 4px 12px; background: #dbeafe; color: #1e40af; border-radius: 12px; font-size: 12px; margin: 2px; }
+        .recommendation { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; }
+        @media print { body { margin: 0; } .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <h1>📊 Student Progress Report</h1>
+    <div style="margin-bottom: 30px;">
+        <strong>Student:</strong> ${studentName}<br>
+        <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
+        <strong>Report Period:</strong> ${student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'} - Present
+    </div>
+
+    <h2>📈 Language Proficiency Profile</h2>
+    <div class="section">
+        <div class="metric">
+            <div class="metric-label">WIDA Level</div>
+            <div class="metric-value">${data.wida}</div>
+            <div style="font-size: 12px; color: #6b7280;">${getLanguageComplexity(data.wida).toUpperCase()}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">i-Ready Math</div>
+            <div class="metric-value">${data.iReady}</div>
+            <div style="font-size: 12px; color: #6b7280;">
+                ${data.iReady < 440 ? 'Below Grade Level' : data.iReady < 490 ? 'At Grade Level' : 'Above Grade Level'}
+            </div>
+        </div>
+    </div>
+
+    ${writing ? `
+    <h2>✍️ Writing Development (Writing Revolution Framework)</h2>
+    <div class="section">
+        <h3>Overall Writing Score: ${writing.averageScores.overall}%</h3>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: ${writing.averageScores.overall}%"></div>
+        </div>
+
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Score</th>
+                <th>Status</th>
+            </tr>
+            <tr>
+                <td>TWR Connector Usage (because, so, but, therefore)</td>
+                <td>${writing.averageScores.twr}%</td>
+                <td>${writing.averageScores.twr >= 70 ? '✓ Proficient' : writing.averageScores.twr >= 50 ? '◐ Developing' : '◯ Emerging'}</td>
+            </tr>
+            <tr>
+                <td>Math Vocabulary (coefficient, inverse, quotient, etc.)</td>
+                <td>${writing.averageScores.vocabulary}%</td>
+                <td>${writing.averageScores.vocabulary >= 70 ? '✓ Proficient' : writing.averageScores.vocabulary >= 50 ? '◐ Developing' : '◯ Emerging'}</td>
+            </tr>
+            <tr>
+                <td>Grammar & Sentence Structure</td>
+                <td>${writing.averageScores.grammar}%</td>
+                <td>${writing.averageScores.grammar >= 70 ? '✓ Proficient' : writing.averageScores.grammar >= 50 ? '◐ Developing' : '◯ Emerging'}</td>
+            </tr>
+        </table>
+
+        ${writing.analyses.length > 0 ? `
+        <h3>Recent TWR Connectors Used:</h3>
+        <div>
+            ${Array.from(new Set(writing.analyses.flatMap(a => a.twrConnectors))).map(w => `<span class="badge">${w}</span>`).join('')}
+        </div>
+        ` : ''}
+    </div>
+    ` : ''}
+
+    <h2>📚 Math Performance</h2>
+    <div class="section">
+        <table>
+            <tr>
+                <th>Unit</th>
+                <th>Score</th>
+            </tr>
+            <tr>
+                <td>Unit 1</td>
+                <td>${data.unit1}%</td>
+            </tr>
+            <tr>
+                <td>Unit 2</td>
+                <td>${data.unit2}%</td>
+            </tr>
+            <tr>
+                <td>Unit 3</td>
+                <td>${data.unit3}%</td>
+            </tr>
+        </table>
+    </div>
+
+    <h2>💬 Conversation Activity</h2>
+    <div class="section">
+        <p><strong>Total Conversations:</strong> ${student.conversations?.length || 0}</p>
+        ${student.conversations && student.conversations.length > 0 ? `
+            <p><strong>Most Recent:</strong> ${new Date(student.conversations[student.conversations.length - 1].timestamp).toLocaleString()}</p>
+        ` : ''}
+    </div>
+
+    <h2>🎯 Recommendations</h2>
+    <div class="section">
+        ${writing && writing.averageScores.twr < 60 ? `
+        <div class="recommendation">
+            <strong>Writing Revolution Focus:</strong> Continue practicing TWR sentence frames. Encourage use of "because," "so," and "therefore" to explain mathematical reasoning.
+        </div>
+        ` : ''}
+        ${writing && writing.averageScores.vocabulary < 60 ? `
+        <div class="recommendation">
+            <strong>Vocabulary Development:</strong> Pre-teach mathematical vocabulary before lessons. Use word walls and graphic organizers to build academic language.
+        </div>
+        ` : ''}
+        ${data.wida < 3.0 ? `
+        <div class="recommendation">
+            <strong>Language Support:</strong> Provide visual supports, sentence frames, and allow use of native language for concept development.
+        </div>
+        ` : ''}
+        ${data.iReady < 440 ? `
+        <div class="recommendation">
+            <strong>Math Intervention:</strong> Focus on conceptual understanding with concrete manipulatives and real-world connections.
+        </div>
+        ` : ''}
+        ${data.notes ? `
+        <div class="recommendation">
+            <strong>Teacher Notes:</strong> ${data.notes}
+        </div>
+        ` : ''}
+    </div>
+
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
+        Generated by MathTalk Oracle • ${new Date().toLocaleString()}
+    </div>
+
+    <div class="no-print" style="margin-top: 20px; text-align: center;">
+        <button onclick="window.print()" style="padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+            🖨️ Print Report
+        </button>
+    </div>
+</body>
+</html>
+            `;
+
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(html);
+            newWindow.document.close();
+        }
+
+        // Custom TWR templates
+        const twrTemplates = [
+            { name: "Because Frame", template: "I _____ because _____." },
+            { name: "So Frame", template: "I did _____, so _____." },
+            { name: "But Frame", template: "_____, but _____." },
+            { name: "Therefore Frame", template: "I know that _____, therefore _____." },
+            { name: "Explain Process", template: "First, I _____. Then, I _____. Finally, I _____." },
+            { name: "Compare", template: "_____ is similar to _____ because _____. However, _____." },
+            { name: "Justify", template: "I chose _____ because _____. This works when _____." }
+        ];
+
+        function insertTemplate(template) {
+            state.currentInput = template;
+            render();
+            const input = document.getElementById('messageInput');
+            if (input) {
+                input.value = template;
+                input.focus();
+            }
+        }
+
+        // Render functions
+        function renderLogin() {
+            return `
+                <div class="container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+                    <div class="card" style="max-width: 500px; text-align: center;">
+                        <h1 class="gradient-text" style="font-size: 48px; margin-bottom: 10px;">MathTalk Oracle</h1>
+                        <p style="color: #6b7280; margin-bottom: 30px;">Complete Adaptive Learning • V3</p>
+                        
+                        <input 
+                            type="text" 
+                            id="username" 
+                            placeholder="Enter your full name"
+                            value="${state.username}"
+                            onkeypress="if(event.key==='Enter') handleLogin('student')"
+                        />
+                        
+                        <button class="btn-primary" onclick="handleLogin('student')" style="width: 100%; margin-bottom: 10px;">
+                            👨‍🎓 I'm a Student
+                        </button>
+                        <button class="btn-secondary" onclick="handleLogin('teacher')" style="width: 100%;">
+                            👨‍🏫 I'm a Teacher
+                        </button>
+
+                        <p style="margin-top: 20px; font-size: 13px; color: #9ca3af;">
+                            Try: José Martinez, Maria Chen, Ali Rahman, Devon Washington
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStudent() {
+            const studentData = state.studentDataMap[state.currentStudent.username];
+            const writingData = state.writingData[state.currentStudent.username];
+
+            return `
+                <div class="container">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div>
+                                <h1 style="font-size: 32px; margin-bottom: 5px;">Hello, ${state.currentStudent.username}! 👋</h1>
+                                <p style="color: #6b7280;">Let's talk about math and practice your English</p>
+                            </div>
+                            <div style="text-align: right;">
+                                ${studentData ? `
+                                    <div style="font-size: 12px; color: #6b7280;">WIDA ${studentData.wida} • i-Ready ${studentData.iReady}</div>
+                                    ${writingData ? `<div style="font-size: 12px; color: #667eea; font-weight: 600;">Writing: ${writingData.averageScores.overall}%</div>` : ''}
+                                ` : ''}
+                                <button class="btn-secondary" onclick="handleLogout()" style="margin-top: 10px;">Logout</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="height: 500px; display: flex; flex-direction: column;">
+                        <div style="flex: 1; overflow-y: auto; padding: 20px; background: #f9fafb; border-radius: 10px; margin-bottom: 20px;">
+                            ${state.conversationHistory.length === 0 ? `
+                                <div style="text-align: center; padding: 80px 20px;">
+                                    <div style="font-size: 64px; margin-bottom: 20px;">💬</div>
+                                    <h2 style="color: #374151; margin-bottom: 10px;">Ready to start?</h2>
+                                    <p style="color: #6b7280; margin-bottom: 20px;">I'll help you explain your math thinking AND improve your English!</p>
+                                    <button class="btn-primary" onclick="startConversation()">Start MathTalk</button>
+                                </div>
+                            ` : state.conversationHistory.map((msg, i) => {
+                                if (msg.role === 'student') {
+                                    const scoreClass = msg.writingAnalysis.overallWritingScore >= 70 ? 'score-high' : 
+                                                      msg.writingAnalysis.overallWritingScore >= 50 ? 'score-medium' : 'score-low';
+                                    return `
+                                        <div class="message message-student">
+                                            <div>${msg.content}</div>
+                                            <div style="margin-top: 10px; font-size: 12px; opacity: 0.9;">
+                                                <span class="writing-score ${scoreClass}">Writing: ${msg.writingAnalysis.overallWritingScore}%</span>
+                                                ${msg.writingAnalysis.twrConnectors.map(w => `<span class="twr-badge">${w}</span>`).join('')}
+                                            </div>
+                                            ${msg.writingAnalysis.feedback.length > 0 ? `
+                                                <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 8px; font-size: 13px;">
+                                                    💡 ${msg.writingAnalysis.feedback[0]}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `;
+                                } else {
+                                    return `<div class="message message-ai">${msg.content}</div>`;
+                                }
+                            }).join('')}
+                            ${state.isLoading ? '<div style="text-align: center;"><div class="loading"></div></div>' : ''}
+                        </div>
+
+                        ${state.conversationHistory.length > 0 ? `
+                            <div>
+                                <div style="margin-bottom: 10px;">
+                                    <button class="btn-secondary" onclick="toggleVoice()" style="margin-right: 5px; font-size: 14px;">
+                                        ${voiceEnabled ? '🔊 Voice ON' : '🔇 Voice OFF'}
+                                    </button>
+                                    <button class="btn-secondary" onclick="startVoiceInput()" style="font-size: 14px;">
+                                        🎤 Speak Answer
+                                    </button>
+                                </div>
+
+                                <details style="margin-bottom: 10px;">
+                                    <summary style="cursor: pointer; padding: 8px; background: #f3f4f6; border-radius: 8px; font-size: 14px;">
+                                        ✍️ Writing Templates (Click to Use)
+                                    </summary>
+                                    <div style="padding: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
+                                        ${twrTemplates.map(t => `
+                                            <button 
+                                                onclick="insertTemplate('${t.template}')" 
+                                                style="padding: 6px 12px; background: #e0e7ff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;"
+                                                title="${t.name}"
+                                            >
+                                                ${t.name}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </details>
+
+                                <textarea 
+                                    id="messageInput"
+                                    placeholder="Type or speak your answer..."
+                                    rows="3"
+                                    onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); handleStudentMessage(); }"
+                                    style="resize: none;"
+                                >${state.currentInput}</textarea>
+                                <button class="btn-primary" onclick="handleStudentMessage()" style="width: 100%;">
+                                    Send Message
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    ${writingData ? `
+                        <div class="card">
+                            <h3 style="margin-bottom: 20px;">📊 Your Writing Progress</h3>
+                            <div class="grid-3">
+                                <div>
+                                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">TWR Connectors</div>
+                                    <div style="font-size: 28px; font-weight: bold; color: #667eea;">${writingData.averageScores.twr}%</div>
+                                    <div class="progress-bar"><div class="progress-fill" style="width: ${writingData.averageScores.twr}%"></div></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">Math Vocabulary</div>
+                                    <div style="font-size: 28px; font-weight: bold; color: #667eea;">${writingData.averageScores.vocabulary}%</div>
+                                    <div class="progress-bar"><div class="progress-fill" style="width: ${writingData.averageScores.vocabulary}%"></div></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">Grammar</div>
+                                    <div style="font-size: 28px; font-weight: bold; color: #667eea;">${writingData.averageScores.grammar}%</div>
+                                    <div class="progress-bar"><div class="progress-fill" style="width: ${writingData.averageScores.grammar}%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderTeacher() {
+            return `
+                <div class="container">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h1 style="font-size: 32px; margin-bottom: 5px;">Teacher Dashboard</h1>
+                                <p style="color: #6b7280;">Complete insights • Math + Writing + English</p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-primary" onclick="showImportModal()">📥 Import Data</button>
+                                <button class="btn-primary" onclick="exportToSpreadsheet()">📤 Export Data</button>
+                                <button class="btn-secondary" onclick="handleLogout()">Logout</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="stat-card">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Total Students</div>
+                            <div style="font-size: 48px; font-weight: bold;">${Object.keys(state.studentDataMap).length}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Conversations</div>
+                            <div style="font-size: 48px; font-weight: bold;">${state.students.reduce((sum, s) => sum + (s.conversations?.length || 0), 0)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Avg Writing Score</div>
+                            <div style="font-size: 48px; font-weight: bold;">
+                                ${Math.round(Object.values(state.writingData).reduce((sum, w) => sum + (w.averageScores?.overall || 0), 0) / Math.max(Object.keys(state.writingData).length, 1))}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">📚 Student Overview</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>WIDA</th>
+                                    <th>i-Ready</th>
+                                    <th>Writing Score</th>
+                                    <th>TWR Use</th>
+                                    <th>Conversations</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.keys(state.studentDataMap).map(name => {
+                                    const data = state.studentDataMap[name];
+                                    const student = state.students.find(s => s.username === name);
+                                    const writing = state.writingData[name];
+                                    
+                                    return `
+                                        <tr>
+                                            <td><strong>${name}</strong></td>
+                                            <td>${data.wida}</td>
+                                            <td>${data.iReady}</td>
+                                            <td>${writing ? `${writing.averageScores.overall}%` : '-'}</td>
+                                            <td>${writing ? `${writing.averageScores.twr}%` : '-'}</td>
+                                            <td>${student?.conversations?.length || 0}</td>
+                                            <td>
+                                                <button onclick="generateReport('${name}')" style="padding: 4px 8px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">
+                                                    📄 Report
+                                                </button>
+                                                <button onclick="exportConversation('${name}')" style="padding: 4px 8px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                    💬 Export
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">✍️ Writing Revolution (TWR) Analytics</h2>
+                        <div class="grid-2">
+                            ${Object.keys(state.writingData).map(name => {
+                                const writing = state.writingData[name];
+                                const data = state.studentDataMap[name];
+                                return `
+                                    <div style="border: 2px solid #e0e7ff; border-radius: 10px; padding: 20px;">
+                                        <h3 style="margin-bottom: 10px;">${name}</h3>
+                                        <p style="font-size: 13px; color: #6b7280; margin-bottom: 15px;">WIDA ${data.wida}</p>
+                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                            <div>
+                                                <div style="font-size: 11px; color: #6b7280;">TWR</div>
+                                                <div style="font-size: 20px; font-weight: bold; color: #667eea;">${writing.averageScores.twr}%</div>
+                                            </div>
+                                            <div>
+                                                <div style="font-size: 11px; color: #6b7280;">Vocab</div>
+                                                <div style="font-size: 20px; font-weight: bold; color: #667eea;">${writing.averageScores.vocabulary}%</div>
+                                            </div>
+                                            <div>
+                                                <div style="font-size: 11px; color: #6b7280;">Grammar</div>
+                                                <div style="font-size: 20px; font-weight: bold; color: #667eea;">${writing.averageScores.grammar}%</div>
+                                            </div>
+                                        </div>
+                                        ${writing.analyses.length > 0 ? `
+                                            <div style="margin-top: 15px; padding: 10px; background: #f9fafb; border-radius: 8px; font-size: 12px;">
+                                                <strong>Latest:</strong> ${writing.analyses[writing.analyses.length - 1].twrConnectors.join(', ') || 'No TWR connectors yet'}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="importModal" class="modal">
+                    <div class="modal-content">
+                        <h2 style="margin-bottom: 20px;">Import Student Data</h2>
+                        <p style="color: #6b7280; margin-bottom: 15px;">Paste tab-separated data from your Excel spreadsheet:</p>
+                        <textarea id="importData" rows="10" placeholder="Name [TAB] WIDA [TAB] i-Ready [TAB] Unit1 [TAB] Unit2 [TAB] Unit3 [TAB] Notes"></textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn-primary" onclick="handleImport()">Import</button>
+                            <button class="btn-secondary" onclick="closeImportModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            let html = '';
+
+            if (state.view === 'login') html = renderLogin();
+            else if (state.view === 'student') html = renderStudent();
+            else if (state.view === 'teacher') html = renderTeacher();
+
+            app.innerHTML = html;
+
+            // Update input value if exists
+            if (state.view === 'student' && state.conversationHistory.length > 0) {
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    input.value = state.currentInput;
+                    input.addEventListener('input', (e) => { state.currentInput = e.target.value; });
+                }
+            }
+
+            if (state.view === 'login') {
+                const input = document.getElementById('username');
+                if (input) {
+                    input.addEventListener('input', (e) => { state.username = e.target.value; });
+                }
+            }
+        }
+
+        // Event handlers
+        function handleLogin(type) {
+            state.username = document.getElementById('username')?.value.trim() || state.username;
+            if (!state.username) return;
+
+            state.userType = type;
+
+            if (type === 'student') {
+                let student = state.students.find(s => s.username === state.username);
+                if (!student) {
+                    student = {
+                        username: state.username,
+                        conversations: [],
+                        createdAt: new Date().toISOString()
+                    };
+                    state.students.push(student);
+                    saveData();
+                }
+                state.currentStudent = student;
+                state.view = 'student';
+                state.conversationHistory = [];
+            } else {
+                state.view = 'teacher';
+            }
+
+            render();
+        }
+
+        function handleLogout() {
+            state.view = 'login';
+            state.username = '';
+            state.currentStudent = null;
+            state.conversationHistory = [];
+            state.currentInput = '';
+            render();
+        }
+
+        async function startConversation() {
+            const studentData = state.studentDataMap[state.currentStudent.username];
+            const aiMessage = await generateAIResponse("Starting conversation", [], studentData);
+            
+            state.conversationHistory.push({
+                role: 'ai',
+                content: aiMessage,
+                timestamp: new Date().toISOString()
+            });
+            
+            render();
+        }
+
+        function showImportModal() {
+            document.getElementById('importModal').classList.add('active');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        function handleImport() {
+            const data = document.getElementById('importData').value;
+            const lines = data.trim().split('\n');
+            
+            lines.forEach(line => {
+                const parts = line.split('\t');
+                if (parts.length >= 6) {
+                    const [name, wida, iReady, unit1, unit2, unit3, ...notesParts] = parts;
+                    state.studentDataMap[name.trim()] = {
+                        wida: parseFloat(wida) || 3.0,
+                        iReady: parseInt(iReady) || 460,
+                        unit1: parseInt(unit1) || 0,
+                        unit2: parseInt(unit2) || 0,
+                        unit3: parseInt(unit3) || 0,
+                        notes: notesParts.join(' ').trim()
+                    };
+                }
+            });
+
+            saveData();
+            closeImportModal();
+            render();
+        }
+
+        // Initialize app
+        loadData();
+        render();
+    </script>
+</body>
+</html>
